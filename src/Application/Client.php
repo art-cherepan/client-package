@@ -5,6 +5,9 @@ namespace ArtemCherepanov\ClientPackage\Application;
 use ArtemCherepanov\ClientPackage\Application\Contract\HttpServiceInterface;
 use ArtemCherepanov\ClientPackage\Application\Dto\CommentPostDto;
 use ArtemCherepanov\ClientPackage\Application\Dto\CommentPutDto;
+use ArtemCherepanov\ClientPackage\Application\Exception\GetDataException;
+use ArtemCherepanov\ClientPackage\Application\Exception\PostDataException;
+use ArtemCherepanov\ClientPackage\Application\Exception\PutDataException;
 use ArtemCherepanov\ClientPackage\Domain\Entity\Comment;
 use ArtemCherepanov\ClientPackage\Infrastructure\HttpService;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
@@ -13,11 +16,11 @@ use Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Symfony\Contracts\HttpClient\ResponseInterface;
 
 class Client
 {
@@ -38,14 +41,16 @@ class Client
 
     /**
      * @return Comment[]
-     * @throws ClientExceptionInterface
-     * @throws RedirectionExceptionInterface
-     * @throws ServerExceptionInterface
-     * @throws TransportExceptionInterface
+     * @throws GetDataException
      */
     public function getComments(): array
     {
-        $data = $this->httpService->getData()->getContent();
+        try {
+            $data = $this->httpService->getData()->getContent();
+        } catch (ClientExceptionInterface|RedirectionExceptionInterface|ServerExceptionInterface|TransportExceptionInterface $e) {
+            throw new GetDataException($e);
+        }
+
 
         /**
          * @var CommentPutDto[] $commentsDto
@@ -67,22 +72,46 @@ class Client
     }
 
     /**
-     * @throws TransportExceptionInterface
+     * @throws PostDataException
      */
-    public function postComment(int $userId, string $title, string $body): ResponseInterface
+    public function postComment(int $userId, string $title, string $body): Comment
     {
-        $commentDto = new CommentPostDto($userId, $title, $body);
+        $commentPostDto = new CommentPostDto($userId, $title, $body);
 
-        return $this->httpService->postData($commentDto);
+        try {
+            $response = $this->httpService->postData($commentPostDto)->toArray();
+        } catch (ClientExceptionInterface|DecodingExceptionInterface|RedirectionExceptionInterface|ServerExceptionInterface|TransportExceptionInterface $e) {
+            throw new PostDataException($e);
+        }
+
+        $comment = new Comment();
+        $comment->setId($response['id']);
+        $comment->setUserId($response['userId']);
+        $comment->setTitle($response['title']);
+        $comment->setBody($response['body']);
+
+        return $comment;
     }
 
     /**
-     * @throws TransportExceptionInterface
+     * @throws PutDataException
      */
-    public function putComment(int $id, int $userId, string $title, string $body): ResponseInterface
+    public function putComment(int $id, int $userId, string $title, string $body): Comment
     {
-        $commentDto = new CommentPutDto($id, $userId, $title, $body);
+        $commentPutDto = new CommentPutDto($id, $userId, $title, $body);
 
-        return $this->httpService->putData($commentDto);
+        try {
+            $response = $this->httpService->putData($commentPutDto)->toArray();
+        } catch (ClientExceptionInterface|DecodingExceptionInterface|RedirectionExceptionInterface|ServerExceptionInterface|TransportExceptionInterface $e) {
+            throw new PutDataException($e);
+        }
+
+        $comment = new Comment();
+        $comment->setId($response['id']);
+        $comment->setUserId($response['userId']);
+        $comment->setTitle($response['title']);
+        $comment->setBody($response['body']);
+
+        return $comment;
     }
 }
