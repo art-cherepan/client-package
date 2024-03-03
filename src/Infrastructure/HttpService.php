@@ -30,7 +30,7 @@ class HttpService implements HttpServiceInterface
     /**
      * @throws TransportExceptionInterface
      */
-    public function postData(CommentPostDto $commentDto): ResponseInterface
+    public function postData(CommentPostDto $commentPostDto): ResponseInterface
     {
         return $this->httpClient->request(
             'POST',
@@ -41,9 +41,9 @@ class HttpService implements HttpServiceInterface
                 ],
                 'body' => json_encode(
                     [
-                        'title' => $commentDto->getTitle(),
-                        'body' => $commentDto->getBody(),
-                        'userId' => $commentDto->getUserId()
+                        'title' => $commentPostDto->getTitle(),
+                        'body' => $commentPostDto->getBody(),
+                        'userId' => $commentPostDto->getUserId()
                     ],
                 )
             ],
@@ -53,21 +53,21 @@ class HttpService implements HttpServiceInterface
     /**
      * @throws TransportExceptionInterface
      */
-    public function putData(CommentPutDto $commentDto): ResponseInterface
+    public function putData(CommentPutDto $commentPutDto): ResponseInterface
     {
         return $this->httpClient->request(
             'PUT',
-            Constants::PUT_COMMENT . $commentDto->getId(),
+            Constants::PUT_COMMENT . $commentPutDto->getId(),
             [
                 'headers' => [
                     'Content-Type' => 'application/json',
                 ],
                 'body' => json_encode(
                     [
-                        'title' => $commentDto->getTitle(),
-                        'body' => $commentDto->getBody(),
-                        'userId' => $commentDto->getUserId(),
-                        'id' => $commentDto->getId()
+                        'title' => $commentPutDto->getTitle(),
+                        'body' => $commentPutDto->getBody(),
+                        'userId' => $commentPutDto->getUserId(),
+                        'id' => $commentPutDto->getId()
                     ],
                 )
             ],

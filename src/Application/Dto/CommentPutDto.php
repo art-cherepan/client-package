@@ -2,10 +2,28 @@
 
 namespace ArtemCherepanov\ClientPackage\Application\Dto;
 
-readonly class CommentPutDto
+use ArtemCherepanov\ClientPackage\Application\Exception\CommentPutDtoIdNotValidException;
+use ArtemCherepanov\ClientPackage\Application\Exception\CommentPutDtoUserIdNotValidException;
+
+class CommentPutDto
 {
-    public function __construct(private int $id, private int $userId, private string $title, private string $body)
-    {
+    /**
+     * @throws CommentPutDtoIdNotValidException
+     * @throws CommentPutDtoUserIdNotValidException
+     */
+    public function __construct(
+        private readonly int $id,
+        private readonly int $userId,
+        private readonly string $title,
+        private readonly string $body
+    ) {
+        if ($this->id < 1) {
+            throw new CommentPutDtoIdNotValidException();
+        }
+
+        if ($this->userId < 1) {
+            throw new CommentPutDtoUserIdNotValidException();
+        }
     }
 
     public function getId(): int

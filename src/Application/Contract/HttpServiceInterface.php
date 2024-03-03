@@ -9,6 +9,6 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 interface HttpServiceInterface
 {
     public function getData(): ResponseInterface;
-    public function postData(CommentPostDto $commentDto): ResponseInterface;
-    public function putData(CommentPutDto $commentDto): ResponseInterface;
+    public function postData(CommentPostDto $commentPostDto): ResponseInterface;
+    public function putData(CommentPutDto $commentPutDto): ResponseInterface;
 }

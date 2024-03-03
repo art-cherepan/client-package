@@ -3,10 +3,13 @@
 namespace Unit;
 
 use ArtemCherepanov\ClientPackage\Application\Dto\CommentPostDto;
+use ArtemCherepanov\ClientPackage\Application\Dto\CommentPutDto;
 use ArtemCherepanov\ClientPackage\Infrastructure\HttpService;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 
 class HttpServiceTest extends TestCase
 {
@@ -47,7 +50,7 @@ class HttpServiceTest extends TestCase
 
     public function testPostData(): void
     {
-        $commentPostDto = new CommentPostDto(55, 'title', 'body');
+        $commentPostDto = new CommentPostDto(55, 'some title', 'some body');
 
         $mockResponse = <<<JSON
           {
@@ -77,28 +80,135 @@ class HttpServiceTest extends TestCase
         $this->assertEquals('some body', $response->toArray()['body']);
     }
 
-//    public function testPostDataUserIdNotValid(): void
-//    {
-//        $commentPostDto = new CommentPostDto(-1, 'title', 'body');
-//
-//        $mockResponse = <<<JSON
-//          {
-//            "status": 400,
-//            "error": "sad"
-//          }
-//        JSON;
-//
-//        $httpClient = new MockHttpClient([
-//            new MockResponse($mockResponse, ['http_code' => 400, 'response_headers' => ['Content-Type: application/json']])
-//        ]);
-//
-//        $stub = $this->getMockBuilder(HttpService::class)
-//            ->setConstructorArgs([$httpClient])
-//            ->onlyMethods(['postData'])
-//            ->getMock();
-//
-//        $response = $stub->postData();
-//
-//        $this->assertEquals(400, $response->getStatusCode());
-//    }
+    public function testPutData(): void
+    {
+        $commentPutDto = new CommentPutDto(222, 33, 'new title', 'old body');
+
+        $mockResponse = <<<JSON
+          {
+            "id": 222,
+            "userId": 33,
+            "title": "new title",
+            "body": "old body"
+          }
+        JSON;
+
+        $httpClient = new MockHttpClient([
+            new MockResponse($mockResponse, ['http_code' => 200, 'response_headers' => ['Content-Type: application/json']])
+        ]);
+
+        $stub = $this->getMockBuilder(HttpService::class)
+            ->setConstructorArgs([$httpClient])
+            ->onlyMethods([])
+            ->getMock();
+
+        $response = $stub->putData($commentPutDto);
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals('application/json', $response->getHeaders()['content-type'][0]);
+        $this->assertEquals(222, $response->toArray()['id']);
+        $this->assertEquals(33, $response->toArray()['userId']);
+        $this->assertEquals('new title', $response->toArray()['title']);
+        $this->assertEquals('old body', $response->toArray()['body']);
+    }
+
+    public function testPostDataUserIdNotValid(): void
+    {
+        $uri = 'https://jsonplaceholder.typicode.com/posts';
+
+        $commentPostDtoMock = $this->createMock(CommentPostDto::class);
+        $commentPostDtoMock->method('getUserId')->willReturn(-1);
+        $commentPostDtoMock->method('getTitle')->willReturn('some title');
+        $commentPostDtoMock->method('getBody')->willReturn('some body');
+
+        $mockResponse = $this->getMockBuilder(ResponseInterface::class)->getMock();
+        $mockResponse->method('toArray')->willReturn(
+            [
+                'status' => 400,
+                'error' => 'The userId field value must not be less than 1'
+            ]
+        );
+
+        $clientMock = $this->getMockBuilder(HttpClientInterface::class)->getMock();
+        $clientMock->expects($this->once())
+            ->method('request')
+            ->with(
+                'POST',
+                $uri,
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                    ],
+                    'body' => json_encode(
+                        [
+                            'title' => $commentPostDtoMock->getTitle(),
+                            'body' => $commentPostDtoMock->getBody(),
+                            'userId' => $commentPostDtoMock->getUserId()
+                        ],
+                    )
+                ],
+            )
+            ->willReturn($mockResponse);
+
+        $stub = $this->getMockBuilder(HttpService::class)
+            ->setConstructorArgs([$clientMock])
+            ->onlyMethods([])
+            ->getMock();
+
+        $response = $stub->postData($commentPostDtoMock);
+
+        $this->assertEquals(400, $response->toArray()['status']);
+        $this->assertEquals('The userId field value must not be less than 1', $response->toArray()['error']);
+    }
+
+    public function testPutDataIdNotValid(): void
+    {
+        $uri = 'https://jsonplaceholder.typicode.com/posts/';
+
+        $commentPutDto = $this->createMock(CommentPutDto::class);
+        $commentPutDto->method('getId')->willReturn(-1);
+        $commentPutDto->method('getUserId')->willReturn(1);
+        $commentPutDto->method('getTitle')->willReturn('new title');
+        $commentPutDto->method('getBody')->willReturn('old body');
+
+        $mockResponse = $this->getMockBuilder(ResponseInterface::class)->getMock();
+        $mockResponse->method('toArray')->willReturn(
+            [
+                'status' => 400,
+                'error' => 'The id field value must not be less than 1'
+            ]
+        );
+
+        $clientMock = $this->getMockBuilder(HttpClientInterface::class)->getMock();
+        $clientMock->expects($this->once())
+            ->method('request')
+            ->with(
+                'PUT',
+                $uri . $commentPutDto->getId(),
+                [
+                    'headers' => [
+                        'Content-Type' => 'application/json',
+                    ],
+                    'body' => json_encode(
+                        [
+                            'title' => $commentPutDto->getTitle(),
+                            'body' => $commentPutDto->getBody(),
+                            'userId' => $commentPutDto->getUserId(),
+                            'id' => $commentPutDto->getId()
+                        ],
+                    )
+                ],
+            )
+            ->willReturn($mockResponse);
+
+        $stub = $this->getMockBuilder(HttpService::class)
+            ->setConstructorArgs([$clientMock])
+            ->onlyMethods([])
+            ->getMock();
+
+        $response = $stub->putData($commentPutDto);
+
+        $this->assertEquals(400, $response->toArray()['status']);
+        $this->assertEquals('The id field value must not be less than 1', $response->toArray()['error']);
+    }
 }
