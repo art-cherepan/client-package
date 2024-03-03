@@ -29,8 +29,8 @@ class Client
 {
     private readonly HttpServiceInterface $httpService;
     private readonly SerializerInterface $serializer;
-
     private const string COMMENT_PUT_DTO_TYPE_PATH = 'ArtemCherepanov\ClientPackage\Application\Dto\CommentPutDto[]';
+
     public function __construct(
         private readonly HttpClientInterface $httpClient,
     ) {

@@ -26,7 +26,6 @@ class HttpService implements HttpServiceInterface
         );
     }
 
-
     /**
      * @throws TransportExceptionInterface
      */
