@@ -31,7 +31,7 @@ class ClientTest extends TestCase
 
     public function testPostComment(): void
     {
-        $response =  $newComment = $this->client->postComment(1, 'New amazing comment', 'some text');
+        $response = $this->client->postComment(1, 'New amazing comment', 'some text');
 
         $this->assertInstanceOf(Comment::class, $response);
         $this->assertEquals(1, $response->getUserId());
@@ -41,7 +41,7 @@ class ClientTest extends TestCase
 
     public function testPutComment(): void
     {
-        $response = $updatedComment = $this->client->putComment(1, 1, 'New title', 'new text');
+        $response = $this->client->putComment(1, 1, 'New title', 'new text');
 
         $this->assertInstanceOf(Comment::class, $response);
         $this->assertEquals(1, $response->getId());

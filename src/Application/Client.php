@@ -5,6 +5,9 @@ namespace ArtemCherepanov\ClientPackage\Application;
 use ArtemCherepanov\ClientPackage\Application\Contract\HttpServiceInterface;
 use ArtemCherepanov\ClientPackage\Application\Dto\CommentPostDto;
 use ArtemCherepanov\ClientPackage\Application\Dto\CommentPutDto;
+use ArtemCherepanov\ClientPackage\Application\Exception\CommentPostDtoUserIdNotValidException;
+use ArtemCherepanov\ClientPackage\Application\Exception\CommentPutDtoIdNotValidException;
+use ArtemCherepanov\ClientPackage\Application\Exception\CommentPutDtoUserIdNotValidException;
 use ArtemCherepanov\ClientPackage\Application\Exception\GetDataException;
 use ArtemCherepanov\ClientPackage\Application\Exception\PostDataException;
 use ArtemCherepanov\ClientPackage\Application\Exception\PutDataException;
@@ -27,7 +30,7 @@ class Client
     private readonly HttpServiceInterface $httpService;
     private readonly SerializerInterface $serializer;
 
-    private const string COMMENT_DTO_TYPE_PATH = 'ArtemCherepanov\ClientPackage\Application\Dto\CommentPutDto[]';
+    private const string COMMENT_PUT_DTO_TYPE_PATH = 'ArtemCherepanov\ClientPackage\Application\Dto\CommentPutDto[]';
     public function __construct(
         private readonly HttpClientInterface $httpClient,
     ) {
@@ -46,24 +49,29 @@ class Client
     public function getComments(): array
     {
         try {
-            $data = $this->httpService->getData()->getContent();
-        } catch (ClientExceptionInterface|RedirectionExceptionInterface|ServerExceptionInterface|TransportExceptionInterface $e) {
+            $content = $this->httpService->getData()->getContent();
+        } catch (
+            ClientExceptionInterface|
+            RedirectionExceptionInterface|
+            ServerExceptionInterface|
+            TransportExceptionInterface $e
+        ) {
             throw new GetDataException($e);
         }
 
 
         /**
-         * @var CommentPutDto[] $commentsDto
+         * @var CommentPutDto[] $commentsPutDto
          */
-        $commentsDto = $this->serializer->deserialize($data, self::COMMENT_DTO_TYPE_PATH, 'json');
+        $commentsPutDto = $this->serializer->deserialize($content, self::COMMENT_PUT_DTO_TYPE_PATH, 'json');
 
         $comments = [];
-        foreach ($commentsDto as $commentDto) {
+        foreach ($commentsPutDto as $commentPutDto) {
             $comment = new Comment();
-            $comment->setId($commentDto->getId());
-            $comment->setUserId($commentDto->getUserId());
-            $comment->setTitle($commentDto->getTitle());
-            $comment->setBody($commentDto->getBody());
+            $comment->setId($commentPutDto->getId());
+            $comment->setUserId($commentPutDto->getUserId());
+            $comment->setTitle($commentPutDto->getTitle());
+            $comment->setBody($commentPutDto->getBody());
 
             $comments[] = $comment;
         }
@@ -72,29 +80,35 @@ class Client
     }
 
     /**
-     * @throws PostDataException
+     * @throws PostDataException|CommentPostDtoUserIdNotValidException
      */
     public function postComment(int $userId, string $title, string $body): Comment
     {
         $commentPostDto = new CommentPostDto($userId, $title, $body);
 
         try {
-            $response = $this->httpService->postData($commentPostDto)->toArray();
-        } catch (ClientExceptionInterface|DecodingExceptionInterface|RedirectionExceptionInterface|ServerExceptionInterface|TransportExceptionInterface $e) {
+            $content = $this->httpService->postData($commentPostDto)->toArray();
+        } catch (
+            ClientExceptionInterface|
+            DecodingExceptionInterface|
+            RedirectionExceptionInterface|
+            ServerExceptionInterface|
+            TransportExceptionInterface $e
+        ) {
             throw new PostDataException($e);
         }
 
         $comment = new Comment();
-        $comment->setId($response['id']);
-        $comment->setUserId($response['userId']);
-        $comment->setTitle($response['title']);
-        $comment->setBody($response['body']);
+        $comment->setId($content['id']);
+        $comment->setUserId($content['userId']);
+        $comment->setTitle($content['title']);
+        $comment->setBody($content['body']);
 
         return $comment;
     }
 
     /**
-     * @throws PutDataException
+     * @throws PutDataException|CommentPutDtoIdNotValidException|CommentPutDtoUserIdNotValidException
      */
     public function putComment(int $id, int $userId, string $title, string $body): Comment
     {
@@ -102,7 +116,13 @@ class Client
 
         try {
             $response = $this->httpService->putData($commentPutDto)->toArray();
-        } catch (ClientExceptionInterface|DecodingExceptionInterface|RedirectionExceptionInterface|ServerExceptionInterface|TransportExceptionInterface $e) {
+        } catch (
+            ClientExceptionInterface|
+            DecodingExceptionInterface|
+            RedirectionExceptionInterface|
+            ServerExceptionInterface|
+            TransportExceptionInterface $e
+        ) {
             throw new PutDataException($e);
         }
 

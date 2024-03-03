@@ -11,7 +11,7 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 
 class HttpService implements HttpServiceInterface
 {
-    public function __construct(private HttpClientInterface $httpClient)
+    public function __construct(private readonly HttpClientInterface $httpClient)
     {
     }
 
